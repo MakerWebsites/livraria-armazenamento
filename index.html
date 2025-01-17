@@ -122,6 +122,13 @@
             gap: 10px;
         }
 
+        #tentarNovamente {
+            margin-top: 20px;
+            font-size: 18px;
+            color: red;
+            display: none;
+        }
+
         @media (max-width: 600px) {
             input, button, label {
                 max-width: 100%;
@@ -169,10 +176,15 @@
     
     <button id="baixarPdf" onclick="baixarPdf()" style="display:none;">Baixar PDF</button>
 
+    <div id="tentarNovamente">
+        <p>Escaneamento não realizado. <button onclick="iniciarScanner()">Tente novamente</button></p>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         const { jsPDF } = window.jspdf;
+        let timer;
 
         // Função para buscar o livro pela API do Open Library
         async function buscarLivro() {
@@ -288,6 +300,9 @@
         // Função para iniciar o escaneamento do código de barras
         function iniciarScanner() {
             document.getElementById('scanner').style.display = 'block';
+            document.getElementById('tentarNovamente').style.display = 'none'; // Ocultar tentativa anterior
+
+            // Configurações para foco automático, flash e escaneamento em cores
             Quagga.init({
                 inputStream: {
                     name: "Live",
@@ -298,8 +313,13 @@
                     }
                 },
                 decoder: {
-                    readers: ["ean_reader", "upc_reader", "ean_13_reader"]
-                }
+                    readers: ["ean_reader", "upc_reader", "ean_13_reader"],
+                    multiple: false // Garantir que só escaneie um código de cada vez
+                },
+                locate: true,
+                patchSize: "medium",
+                zoom: 1,
+                flash: true
             }, function(err) {
                 if (err) {
                     console.error(err);
@@ -307,6 +327,12 @@
                 }
                 Quagga.start();
             });
+
+            // Timer para parar o escaneamento após 30 segundos
+            timer = setTimeout(function() {
+                pararScanner();
+                document.getElementById('tentarNovamente').style.display = 'block';
+            }, 30000); // 30 segundos
 
             // Evento que escaneia o código de barras
             Quagga.onDetected(function(result) {
@@ -320,11 +346,9 @@
         // Função para parar o escaneamento do código de barras
         function pararScanner() {
             document.getElementById('scanner').style.display = 'none';
+            clearTimeout(timer); // Limpar o timer
             Quagga.stop();
         }
-
-        // Mostrar os livros armazenados ao carregar a página
-        window.onload = mostrarLivros;
     </script>
 </body>
 </html>

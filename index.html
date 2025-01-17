@@ -127,6 +127,50 @@
             display: none;
         }
 
+        #tenteNovamenteBtn {
+            padding: 10px 20px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .scanner-container {
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .scanner-container button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+
+        #buscandoAnimacao {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ff9800;
+            font-weight: bold;
+        }
+
+        .scanner-container {
+            position: relative;
+            margin-top: 20px;
+        }
+
+        .scanner-container button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+        }
+
         @media (max-width: 600px) {
             button {
                 max-width: 100%;
@@ -147,18 +191,6 @@
         #baixarPdf:hover {
             background-color: #0056b3;
         }
-
-        .scanner-container {
-            position: relative;
-            margin-top: 20px;
-        }
-
-        .scanner-container button {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-        }
     </style>
 </head>
 <body>
@@ -170,6 +202,7 @@
 
     <div id="scanner" class="scanner-container">
         <div id="quagga-container"></div>
+        <div id="buscandoAnimacao">Buscando...</div>
         <div class="scanner-actions">
             <button onclick="pararScanner()">Parar Escaneamento</button>
         </div>
@@ -181,7 +214,7 @@
     <button id="baixarPdf" onclick="baixarPdf()" style="display:none;">Baixar PDF</button>
 
     <div id="tentarNovamente">
-        <p>Escaneamento não realizado. <button onclick="iniciarScanner()">Tente novamente</button></p>
+        <p>Escaneamento não realizado. <button id="tenteNovamenteBtn" onclick="iniciarScanner()">Tente novamente</button></p>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
@@ -296,6 +329,7 @@
         function iniciarScanner() {
             document.getElementById('scanner').style.display = 'block';
             document.getElementById('tentarNovamente').style.display = 'none';
+            document.getElementById('buscandoAnimacao').style.display = 'block';
 
             Quagga.init({
                 inputStream: {
@@ -337,6 +371,7 @@
         // Função para parar o escaneamento
         function pararScanner() {
             document.getElementById('scanner').style.display = 'none';
+            document.getElementById('buscandoAnimacao').style.display = 'none';
             clearTimeout(timer);
             Quagga.stop();
         }

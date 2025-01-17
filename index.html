@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buscar e Armazenar Livro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            margin: 10px 0;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        label {
+            font-size: 18px;
+            margin-bottom: 8px;
+            display: block;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        #resultado {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .livro {
+            margin-top: 20px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .livro h3 {
+            margin-bottom: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .livro p {
+            margin: 5px 0;
+        }
+
+        .livros-armazenados {
+            width: 100%;
+            max-width: 600px;
+            margin-top: 20px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .livro-armazenado {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #scanner {
+            display: none;
+            margin-top: 20px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        #quagga-container {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+
+        .scanner-actions {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 600px) {
+            input, button, label {
+                max-width: 100%;
+                width: 100%;
+            }
+        }
+
+        #baixarPdf {
+            margin-top: 20px;
+            display: block;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            width: 100%;
+            max-width: 200px;
+        }
+
+        #baixarPdf:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Buscar e Armazenar Livro pelo ISBN</h1>
+    
+    <label for="isbn">ISBN:</label>
+    <input type="text" id="isbn" placeholder="Insira o ISBN do livro">
+    <button onclick="buscarLivro()">Buscar e Armazenar</button>
+    
+    <div id="resultado"></div>
+    
+    <h2>Ou escaneie o código de barras:</h2>
+    <button onclick="iniciarScanner()">Iniciar Escaneamento</button>
+    
+    <div id="scanner">
+        <div id="quagga-container"></div>
+        <div class="scanner-actions">
+            <button onclick="pararScanner()">Parar Escaneamento</button>
+        </div>
+    </div>
+    
+    <h2>Livros Armazenados</h2>
+    <div id="livrosArmazenados" class="livros-armazenados"></div>
+    
+    <button id="baixarPdf" onclick="baixarPdf()" style="display:none;">Baixar PDF</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        // Função para buscar o livro pela API do Open Library
+        async function buscarLivro() {
+            const isbn = document.getElementById('isbn').value;
+            const resultadoDiv = document.getElementById('resultado');
+            resultadoDiv.innerHTML = 'Buscando...';
+
+            if (!isbn) {
+                resultadoDiv.innerHTML = 'Por favor, insira um ISBN válido.';
+                return;
+            }
+
+            try {
+                // Faz a solicitação à API do Open Library
+                const response = await fetch(`https://openlibrary.org/isbn/${isbn}.json`);
+                const data = await response.json();
+
+                if (data.title) {
+                    // Exibe os dados do livro
+                    resultadoDiv.innerHTML = `
+                        <h3>${data.title}</h3>
+                        <p>Autor(es): ${data.authors ? data.authors.map(author => author.name).join(', ') : 'Desconhecido'}</p>
+                        <p>Editora: ${data.publishers ? data.publishers.join(', ') : 'Desconhecida'}</p>
+                        <p>Ano de Publicação: ${data.publish_date || 'Não disponível'}</p>
+                    `;
+
+                    // Salva o livro no localStorage
+                    salvarLivro(data);
+                } else {
+                    resultadoDiv.innerHTML = 'Livro não encontrado.';
+                }
+            } catch (error) {
+                resultadoDiv.innerHTML = 'Erro ao buscar livro. Tente novamente.';
+            }
+        }
+
+        // Função para salvar o livro no localStorage
+        function salvarLivro(livro) {
+            let livros = JSON.parse(localStorage.getItem('livros')) || [];
+
+            // Adiciona o novo livro no array
+            livros.push({
+                titulo: livro.title,
+                autores: livro.authors ? livro.authors.map(author => author.name).join(', ') : 'Desconhecido',
+                editora: livro.publishers ? livro.publishers.join(', ') : 'Desconhecida',
+                ano_publicacao: livro.publish_date || 'Não disponível'
+            });
+
+            // Salva novamente o array no localStorage
+            localStorage.setItem('livros', JSON.stringify(livros));
+
+            // Atualiza a lista de livros armazenados
+            mostrarLivros();
+        }
+
+        // Função para mostrar os livros armazenados
+        function mostrarLivros() {
+            const livros = JSON.parse(localStorage.getItem('livros')) || [];
+            const livrosDiv = document.getElementById('livrosArmazenados');
+
+            livrosDiv.innerHTML = ''; // Limpa a lista antes de renderizar novamente
+
+            if (livros.length === 0) {
+                livrosDiv.innerHTML = 'Nenhum livro armazenado.';
+            } else {
+                livros.forEach((livro, index) => {
+                    const divLivro = document.createElement('div');
+                    divLivro.classList.add('livro-armazenado');
+                    divLivro.innerHTML = `
+                        <div>
+                            <h3>${livro.titulo}</h3>
+                            <p>Autor(es): ${livro.autores}</p>
+                            <p>Editora: ${livro.editora}</p>
+                            <p>Ano de Publicação: ${livro.ano_publicacao}</p>
+                        </div>
+                        <button onclick="removerLivro(${index})">Excluir</button>
+                    `;
+                    livrosDiv.appendChild(divLivro);
+                });
+                // Exibe o botão para baixar o PDF
+                document.getElementById('baixarPdf').style.display = 'block';
+            }
+        }
+
+        // Função para remover um livro da lista
+        function removerLivro(index) {
+            let livros = JSON.parse(localStorage.getItem('livros')) || [];
+            livros.splice(index, 1); // Remove o livro pelo índice
+            localStorage.setItem('livros', JSON.stringify(livros));
+            mostrarLivros(); // Atualiza a lista de livros
+        }
+
+        // Função para gerar e baixar o PDF com a lista de livros
+        function baixarPdf() {
+            const livros = JSON.parse(localStorage.getItem('livros')) || [];
+            const doc = new jsPDF();
+
+            doc.setFontSize(12);
+            doc.text('Lista de Livros Armazenados', 10, 10);
+            let yOffset = 20;
+
+            livros.forEach(livro => {
+                doc.text(`Título: ${livro.titulo}`, 10, yOffset);
+                doc.text(`Autor(es): ${livro.autores}`, 10, yOffset + 10);
+                doc.text(`Editora: ${livro.editora}`, 10, yOffset + 20);
+                doc.text(`Ano de Publicação: ${livro.ano_publicacao}`, 10, yOffset + 30);
+                yOffset += 40;
+            });
+
+            doc.save('livros_armazenados.pdf');
+        }
+
+        // Função para iniciar o escaneamento do código de barras
+        function iniciarScanner() {
+            document.getElementById('scanner').style.display = 'block';
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.querySelector('#quagga-container'),
+                    constraints: {
+                        facingMode: "environment"
+                    }
+                },
+                decoder: {
+                    readers: ["ean_reader", "upc_reader", "ean_13_reader"]
+                }
+            }, function(err) {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                Quagga.start();
+            });
+
+            // Evento que escaneia o código de barras
+            Quagga.onDetected(function(result) {
+                const isbn = result.codeResult.code;
+                document.getElementById('isbn').value = isbn;
+                buscarLivro();
+                pararScanner(); // Para o scanner após a leitura
+            });
+        }
+
+        // Função para parar o escaneamento do código de barras
+        function pararScanner() {
+            document.getElementById('scanner').style.display = 'none';
+            Quagga.stop();
+        }
+
+        // Mostrar os livros armazenados ao carregar a página
+        window.onload = mostrarLivros;
+    </script>
+</body>
+</html>
